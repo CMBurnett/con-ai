@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+@.claude/instructions.md
+
 ## Project Overview
 
 Con-AI is a construction intelligence platform that uses AI agents to automate interactions with construction software platforms (Procore, Autodesk Construction Cloud, Oracle Primavera P6). It's a local-first desktop PWA with a React frontend and Python FastAPI backend.
@@ -152,3 +154,39 @@ Based on project requirements, the following API endpoints will be needed:
 - `GET /onboarding/progress` - Get setup progress
 - `POST /onboarding/complete` - Complete onboarding
 - `GET /templates/agent` - Get agent configuration templates
+
+## Memory Management
+
+**Claude Code Memory Structure:**
+- Project instructions: `CLAUDE.md` (this file)
+- Additional context: Imported via `@path` syntax
+- User preferences: `~/.claude/CLAUDE.md`
+- Enterprise policies: System-wide configuration
+
+**Documentation Links:**
+- Main project README: `@README.md`
+- Frontend documentation: `@frontend/README.md`
+- Git workflow: `@docs/con_ai_claudecode_workflow.md`
+- Complete directory structure: `@docs/complete-directory.md`
+
+## Git Workflow
+
+**Development Process:**
+1. Create feature branches from `main`
+2. Make changes following the architecture patterns above
+3. Run lint/test commands before committing
+4. Create PRs targeting `main` branch
+5. Ensure all CI checks pass
+
+**Commit Message Format:**
+- `feat:` for new features
+- `fix:` for bug fixes
+- `docs:` for documentation updates
+- `refactor:` for code restructuring
+- `test:` for test additions/updates
+
+**Important Files to Review:**
+- `package.json` (frontend dependencies)
+- `requirements.txt` (backend dependencies)
+- `.gitignore` patterns
+- CI/CD configuration
