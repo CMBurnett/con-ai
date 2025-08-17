@@ -11,6 +11,7 @@ from api.agents import router as agents_router
 from services.agent_service import agent_service
 from agents.demo_agent import DemoAgent
 from models.agent import AgentType
+from orchestra import OrchestraManager
 
 
 # Configure logging
@@ -22,10 +23,15 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+# Global Orchestra manager instance
+orchestra_manager: OrchestraManager = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events."""
+    global orchestra_manager
+
     # Startup
     logger.info("Starting Con-AI Backend")
 
@@ -37,7 +43,20 @@ async def lifespan(app: FastAPI):
         logger.error(f"Database initialization failed: {e}")
         raise
 
-    # Register agent classes
+    # Initialize Orchestra manager
+    try:
+        orchestra_manager = OrchestraManager(manager)
+        await orchestra_manager.initialize()
+
+        # Store reference for API access
+        app.state.orchestra_manager = orchestra_manager
+
+        logger.info("Orchestra framework initialized successfully")
+    except Exception as e:
+        logger.error(f"Orchestra initialization failed: {e}")
+        raise
+
+    # Register agent classes (legacy compatibility)
     try:
         agent_service.register_agent_class(AgentType.DEMO, DemoAgent)
         logger.info("Agent classes registered successfully")
@@ -49,6 +68,14 @@ async def lifespan(app: FastAPI):
 
     # Shutdown
     logger.info("Shutting down Con-AI Backend")
+
+    # Shutdown Orchestra manager
+    if orchestra_manager:
+        try:
+            await orchestra_manager.shutdown()
+            logger.info("Orchestra manager shutdown complete")
+        except Exception as e:
+            logger.error(f"Orchestra manager shutdown failed: {e}")
 
 
 # Create FastAPI application
@@ -70,6 +97,11 @@ app.add_middleware(
 
 # Include API routers
 app.include_router(agents_router, prefix="/api")
+
+# Include Orchestra API router
+from api.orchestra import router as orchestra_router
+
+app.include_router(orchestra_router, prefix="/api")
 
 
 # Health check endpoint
