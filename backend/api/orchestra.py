@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from typing import Dict, List, Any, Optional
 import logging
 
-from models.agent import AgentType
+from orchestra.orchestra_manager import AgentType
 
 logger = logging.getLogger(__name__)
 

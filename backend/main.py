@@ -7,10 +7,6 @@ from contextlib import asynccontextmanager
 from config import settings
 from database import create_tables
 from api.websocket import websocket_endpoint, manager
-from api.agents import router as agents_router
-from services.agent_service import agent_service
-from agents.demo_agent import DemoAgent
-from models.agent import AgentType
 from orchestra import OrchestraManager
 
 
@@ -56,14 +52,6 @@ async def lifespan(app: FastAPI):
         logger.error(f"Orchestra initialization failed: {e}")
         raise
 
-    # Register agent classes (legacy compatibility)
-    try:
-        agent_service.register_agent_class(AgentType.DEMO, DemoAgent)
-        logger.info("Agent classes registered successfully")
-    except Exception as e:
-        logger.error(f"Agent class registration failed: {e}")
-        raise
-
     yield
 
     # Shutdown
@@ -94,9 +82,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Include API routers
-app.include_router(agents_router, prefix="/api")
 
 # Include Orchestra API router
 from api.orchestra import router as orchestra_router
@@ -135,12 +120,11 @@ async def api_status():
     """API status endpoint."""
     return {
         "api_status": "operational",
-        "database": "connected",
+        "database": "connected", 
         "websocket_connections": manager.get_connection_count(),
+        "orchestra_enabled": True,
         "settings": {
             "cors_origins": settings.cors_origins,
-            "max_concurrent_agents": settings.max_concurrent_agents,
-            "agent_timeout": settings.agent_timeout,
         },
     }
 

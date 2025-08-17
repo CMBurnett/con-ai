@@ -46,7 +46,16 @@ class MockOrchestraAgent:
 Orchestra = MockOrchestra
 OrchestraAgent = MockOrchestraAgent
 
-from models.agent import Agent, AgentState, AgentType
+# Define AgentType enum locally since we removed legacy models
+from enum import Enum
+
+class AgentType(Enum):
+    """Agent types for Orchestra framework."""
+    PROCORE = "procore"
+    AUTODESK = "autodesk" 
+    PRIMAVERA = "primavera"
+    DEMO = "demo"
+
 from api.websocket import ConnectionManager
 from orchestra.temporal.knowledge_graph import TemporalKnowledgeGraph
 

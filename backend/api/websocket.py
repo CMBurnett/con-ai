@@ -5,7 +5,15 @@ import logging
 from datetime import datetime
 import asyncio
 
-from models.agent import AgentState
+# Define AgentState enum locally since we removed legacy models
+from enum import Enum
+
+class AgentState(Enum):
+    """Agent states for WebSocket updates."""
+    IDLE = "idle"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    ERROR = "error"
 
 logger = logging.getLogger(__name__)
 
