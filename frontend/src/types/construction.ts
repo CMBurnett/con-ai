@@ -3,28 +3,29 @@ export interface Project {
   name: string;
   status: 'planning' | 'active' | 'delayed' | 'completed';
   budget: number;
-  actualCost: number;
   progress: number;
   startDate: Date;
   endDate: Date;
-  platform: 'procore' | 'autodesk' | 'primavera';
+  manager: string;
+  platform?: 'procore' | 'autodesk' | 'primavera';
 }
 
 export interface RFI {
   id: string;
   projectId: string;
   title: string;
+  description: string;
   status: 'open' | 'pending' | 'closed';
   priority: 'low' | 'medium' | 'high' | 'critical';
-  createdDate: Date;
+  submittedBy: string;
+  submittedDate: Date;
   dueDate?: Date;
-  assignee: string;
 }
 
 export interface BudgetItem {
+  id: string;
+  projectId: string;
   category: string;
-  budgeted: number;
-  actual: number;
-  variance: number;
-  variancePercent: number;
+  budgetedAmount: number;
+  actualAmount: number;
 }
