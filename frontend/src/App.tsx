@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Layout } from '@/components/common/Layout';
-import { Dashboard } from '@/pages/Dashboard';
+import { DashboardEnhanced as Dashboard } from '@/pages/DashboardEnhanced';
 import { Agents } from '@/pages/Agents';
 import { Settings } from '@/pages/Settings';
 import { Help } from '@/pages/Help';
