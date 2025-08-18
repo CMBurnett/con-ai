@@ -1,7 +1,7 @@
 export interface Agent {
   id: string;
   name: string;
-  type: 'procore' | 'autodesk' | 'primavera' | 'demo';
+  type: 'procore' | 'autodesk' | 'primavera' | 'msproject' | 'demo';
   status: 'idle' | 'running' | 'error' | 'completed';
   progress: number;
   lastRun?: Date;

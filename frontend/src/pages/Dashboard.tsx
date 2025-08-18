@@ -5,11 +5,94 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { useUIStore } from '@/stores/uiStore';
 
 export const Dashboard: React.FC = () => {
-  const { agents, activeAgents, recentUpdates } = useAgentStore();
+  const { agents, activeAgents, recentUpdates, setAgents } = useAgentStore();
   const { projects, rfis, budgetItems, lastSync, isLoading } = useDataStore();
   const { isConnected, sendAgentStart, sendAgentStop } = useWebSocket();
   const { addNotification } = useUIStore();
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+
+  // Initialize demo agents
+  useEffect(() => {
+    const demoAgents = [
+      {
+        id: 'procore-agent-1',
+        name: 'Procore Data Extractor',
+        type: 'procore' as const,
+        status: 'idle' as const,
+        progress: 0,
+        config: {
+          id: 'procore-agent-1',
+          agentType: 'procore',
+          settings: {
+            baseUrl: 'https://app.procore.com',
+            projectId: 'demo-project',
+          },
+        },
+      },
+      {
+        id: 'autodesk-agent-1',
+        name: 'Autodesk ACC Sync',
+        type: 'autodesk' as const,
+        status: 'idle' as const,
+        progress: 0,
+        config: {
+          id: 'autodesk-agent-1',
+          agentType: 'autodesk',
+          settings: {
+            hubId: 'demo-hub',
+            projectId: 'demo-project',
+          },
+        },
+      },
+      {
+        id: 'primavera-agent-1',
+        name: 'Oracle Primavera P6',
+        type: 'primavera' as const,
+        status: 'idle' as const,
+        progress: 0,
+        config: {
+          id: 'primavera-agent-1',
+          agentType: 'primavera',
+          settings: {
+            baseUrl: 'https://cloud.primavera.oracle.com',
+            projectId: 'demo-project',
+          },
+        },
+      },
+      {
+        id: 'msproject-agent-1',
+        name: 'Microsoft Project Scheduler',
+        type: 'msproject' as const,
+        status: 'idle' as const,
+        progress: 0,
+        config: {
+          id: 'msproject-agent-1',
+          agentType: 'msproject',
+          settings: {
+            baseUrl: 'https://project.microsoft.com',
+            projectId: 'demo-project',
+          },
+        },
+      },
+      {
+        id: 'demo-agent-1',
+        name: 'Demo Testing Agent',
+        type: 'demo' as const,
+        status: 'idle' as const,
+        progress: 0,
+        config: {
+          id: 'demo-agent-1',
+          agentType: 'demo',
+          settings: {
+            simulationDuration: 10,
+            stepCount: 5,
+          },
+        },
+      },
+    ];
+    
+    setAgents(demoAgents);
+  }, [setAgents]);
 
   // Demo data for visualization
   useEffect(() => {

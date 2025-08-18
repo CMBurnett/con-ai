@@ -54,6 +54,7 @@ class AgentType(Enum):
     PROCORE = "procore"
     AUTODESK = "autodesk" 
     PRIMAVERA = "primavera"
+    MSPROJECT = "msproject"
     DEMO = "demo"
 
 from api.websocket import ConnectionManager

@@ -48,6 +48,36 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         },
       },
       {
+        id: 'primavera-agent-1',
+        name: 'Oracle Primavera P6',
+        type: 'primavera' as const,
+        status: 'idle' as const,
+        progress: 0,
+        config: {
+          id: 'primavera-agent-1',
+          agentType: 'primavera',
+          settings: {
+            baseUrl: 'https://cloud.primavera.oracle.com',
+            projectId: 'demo-project',
+          },
+        },
+      },
+      {
+        id: 'msproject-agent-1',
+        name: 'Microsoft Project Scheduler',
+        type: 'msproject' as const,
+        status: 'idle' as const,
+        progress: 0,
+        config: {
+          id: 'msproject-agent-1',
+          agentType: 'msproject',
+          settings: {
+            baseUrl: 'https://project.microsoft.com',
+            projectId: 'demo-project',
+          },
+        },
+      },
+      {
         id: 'demo-agent-1',
         name: 'Demo Testing Agent',
         type: 'demo' as const,
@@ -63,6 +93,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         },
       },
     ];
+    
     setAgents(demoAgents);
   }, [setAgents]);
 
@@ -128,7 +159,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ notification }) => 
   const icon = {
     success: '',
     error: '',
-    warning: ' ',
+    warning: 'ï¿½',
     info: '9',
   }[notification.type];
 
@@ -146,7 +177,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ notification }) => 
           onClick={() => removeNotification(notification.id)}
           className="text-white hover:text-gray-200 text-lg leading-none"
         >
-          ×
+          ï¿½
         </button>
       </div>
     </div>

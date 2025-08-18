@@ -24,6 +24,7 @@ from orchestra.tools.construction_tools import (
     ProcoreTools,
     AutodeskTools,
     PrimaveraTools,
+    MSProjectTools,
     DataExtractionTool,
     AnalyticsTool,
 )
@@ -73,6 +74,15 @@ class ConstructionAgent(OrchestraAgent):
                 "progress_tracking",
                 "what_if_scenarios",
             ],
+            "msproject": [
+                "project_scheduling",
+                "resource_management",
+                "task_dependency_analysis",
+                "timeline_tracking",
+                "microsoft_365_integration",
+                "gantt_chart_analysis",
+                "baseline_comparison",
+            ],
             "demo": ["simulation", "testing", "validation"],
         }
 
@@ -88,6 +98,8 @@ class ConstructionAgent(OrchestraAgent):
             tools["autodesk"] = AutodeskTools()
         elif self.platform == "primavera":
             tools["primavera"] = PrimaveraTools()
+        elif self.platform == "msproject":
+            tools["msproject"] = MSProjectTools()
 
         return tools
 
@@ -207,8 +219,8 @@ class ConstructionAgent(OrchestraAgent):
 
         platform_tool = self.tools.get(self.platform)
 
-        if self.platform != "primavera":
-            raise ValueError("Schedule analysis is specific to Primavera platform")
+        if self.platform not in ["primavera", "msproject"]:
+            raise ValueError("Schedule analysis is specific to Primavera and Microsoft Project platforms")
 
         # Get schedule data
         schedule_data = await platform_tool.get_schedule(project_id)
