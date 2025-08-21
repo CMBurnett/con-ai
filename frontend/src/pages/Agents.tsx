@@ -1,12 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAgentStore } from '@/stores/agentStore';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useUIStore } from '@/stores/uiStore';
+import { AgentConfigModal } from '@/components/agents/AgentConfigModal';
+import { AgentType } from '@/types/agents';
 
 export const Agents: React.FC = () => {
   const { agents, activeAgents } = useAgentStore();
   const { isConnected, sendAgentStart, sendAgentStop } = useWebSocket();
   const { addNotification } = useUIStore();
+  const [configModalOpen, setConfigModalOpen] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<{id: string, name: string, type: AgentType} | null>(null);
 
   const handleStartAgent = async (agentId: string) => {
     const agent = agents.find(a => a.id === agentId);
@@ -24,7 +28,7 @@ export const Agents: React.FC = () => {
         message: `${agent.name} is now running`,
         duration: 3000,
       });
-    } catch (error) {
+    } catch {
       addNotification({
         type: 'error',
         title: 'Start Failed',
@@ -47,7 +51,7 @@ export const Agents: React.FC = () => {
         message: `${agent.name} has been stopped`,
         duration: 3000,
       });
-    } catch (error) {
+    } catch {
       addNotification({
         type: 'error',
         title: 'Stop Failed',
@@ -55,6 +59,34 @@ export const Agents: React.FC = () => {
         duration: 5000,
       });
     }
+  };
+
+  const handleConfigureAgent = (agentId: string) => {
+    const agent = agents.find(a => a.id === agentId);
+    if (!agent) return;
+    
+    setSelectedAgent({
+      id: agent.id,
+      name: agent.name,
+      type: agent.type
+    });
+    setConfigModalOpen(true);
+  };
+
+  const handleSaveConfig = () => {
+    if (!selectedAgent) return;
+    
+    // Update agent configuration
+    // In a real implementation, this would save to the backend
+    addNotification({
+      type: 'success',
+      title: 'Configuration Saved',
+      message: `${selectedAgent.name} configuration updated successfully`,
+      duration: 3000,
+    });
+    
+    setSelectedAgent(null);
+    setConfigModalOpen(false);
   };
 
   const getStatusBadge = (status: string) => {
@@ -172,7 +204,10 @@ export const Agents: React.FC = () => {
                     Start Agent
                   </button>
                 )}
-                <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                <button 
+                  onClick={() => handleConfigureAgent(agent.id)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                >
                   Configure
                 </button>
               </div>
@@ -194,6 +229,17 @@ export const Agents: React.FC = () => {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Agent Configuration Modal */}
+      {selectedAgent && (
+        <AgentConfigModal
+          isOpen={configModalOpen}
+          onClose={() => setConfigModalOpen(false)}
+          agentType={selectedAgent.type}
+          agentName={selectedAgent.name}
+          onSave={handleSaveConfig}
+        />
       )}
     </div>
   );

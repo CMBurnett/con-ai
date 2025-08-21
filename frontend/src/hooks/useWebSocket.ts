@@ -16,12 +16,12 @@ export const useWebSocket = (): UseWebSocketReturn => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('disconnected');
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
   
   const addAgentUpdate = useAgentStore(state => state.addAgentUpdate);
-  const addNotification = useUIStore(state => state.addNotification);
+  const addNotification = useUIStore((state) => state.addNotification);
   const setOnlineStatus = useUIStore(state => state.setOnlineStatus);
 
   const connect = useCallback(() => {

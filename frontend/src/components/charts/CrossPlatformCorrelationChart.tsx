@@ -8,14 +8,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
-  BarChart,
-  Bar,
-  Legend,
 } from 'recharts';
 import { useWebSocket } from '@/hooks/useWebSocket';
 
@@ -35,7 +27,7 @@ interface CorrelationDataPoint {
   label: string;
   projectId: string;
   platform: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 interface PlatformMetrics {
@@ -93,7 +85,7 @@ export const CrossPlatformCorrelationChart: React.FC<CrossPlatformCorrelationCha
     }
   };
 
-  const processOrchestrationData = (data: any) => {
+  const processOrchestrationData = (_data: Record<string, unknown>) => {
     // Process real Orchestra data when available
     // For now, generate demo data
     generateDemoCorrelationData();

@@ -55,10 +55,14 @@ class AgentType(Enum):
     AUTODESK = "autodesk" 
     PRIMAVERA = "primavera"
     MSPROJECT = "msproject"
+    EMAIL = "email"
     DEMO = "demo"
 
-from api.websocket import ConnectionManager
 from orchestra.temporal.knowledge_graph import TemporalKnowledgeGraph
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from api.websocket import ConnectionManager
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +70,7 @@ logger = logging.getLogger(__name__)
 class OrchestraManager:
     """Manages Orchestra framework integration and agent orchestration."""
 
-    def __init__(self, websocket_manager: ConnectionManager):
+    def __init__(self, websocket_manager: "ConnectionManager"):
         self.orchestra = Orchestra()
         self.websocket_manager = websocket_manager
         self.knowledge_graph = TemporalKnowledgeGraph()
@@ -240,23 +244,32 @@ class OrchestraManager:
     ) -> OrchestraAgent:
         """Create an Orchestra agent based on the agent type."""
         from .agents.construction_agent import ConstructionAgent
+        from .agents.email_agent import EmailAgent
 
         # Map agent types to Orchestra agent classes
         agent_classes = {
             AgentType.PROCORE: ConstructionAgent,
             AgentType.AUTODESK: ConstructionAgent,
             AgentType.PRIMAVERA: ConstructionAgent,
+            AgentType.MSPROJECT: ConstructionAgent,
+            AgentType.EMAIL: EmailAgent,
             AgentType.DEMO: ConstructionAgent,
         }
 
         agent_class = agent_classes.get(agent_type, ConstructionAgent)
 
-        # Create agent with construction-specific tools
-        agent = agent_class(
-            name=f"{agent_type.value}_{agent_id}",
-            platform=agent_type.value,
-            agent_id=agent_id,
-        )
+        # Create agent with type-specific configuration
+        if agent_type == AgentType.EMAIL:
+            agent = agent_class(
+                name=f"{agent_type.value}_{agent_id}",
+                agent_id=agent_id,
+            )
+        else:
+            agent = agent_class(
+                name=f"{agent_type.value}_{agent_id}",
+                platform=agent_type.value,
+                agent_id=agent_id,
+            )
 
         return agent
 

@@ -13,37 +13,90 @@ import json
 from abc import ABC, abstractmethod
 
 
-# Mock BrowserUse for development
-class MockBrowserUse:
-    """Mock browser automation for development."""
+# Real BrowserUse implementation
+try:
+    from browser_use import Agent as BrowserAgent
+    from browser_use.browser.browser import Browser
+    from browser_use.browser.context import BrowserContext
+    
+    class BrowserUseWrapper:
+        """Wrapper for browser-use library to match our interface."""
+        
+        def __init__(self, headless: bool = True):
+            self.headless = headless
+            self.browser = None
+            self.context = None
+            self.agent = None
+            
+        async def start(self):
+            """Initialize browser and agent."""
+            self.browser = Browser(
+                headless=self.headless,
+                disable_web_security=False
+            )
+            await self.browser.start()
+            
+            self.context = await self.browser.new_context()
+            self.agent = BrowserAgent(
+                task="MS Project data extraction agent",
+                llm=None,  # Will use default
+                browser_context=self.context
+            )
+            
+        async def close(self):
+            """Close browser and cleanup."""
+            if self.context:
+                await self.context.close()
+            if self.browser:
+                await self.browser.close()
+                
+        async def navigate(self, url: str):
+            """Navigate to URL."""
+            if self.context:
+                page = await self.context.new_page()
+                await page.goto(url)
+                return page
+            raise RuntimeError("Browser not started")
+            
+        async def get_page(self):
+            """Get current page."""
+            if self.context:
+                pages = self.context.pages
+                return pages[0] if pages else await self.context.new_page()
+            raise RuntimeError("Browser not started")
+            
+        async def run_task(self, instruction: str):
+            """Run a browser automation task."""
+            if self.agent:
+                return await self.agent.run(instruction)
+            raise RuntimeError("Agent not initialized")
+    
+    BrowserUse = BrowserUseWrapper
+    
+except ImportError:
+    # Fallback to mock if browser-use not available
+    class MockBrowserUse:
+        """Mock browser automation for development."""
 
-    async def start(self):
-        pass
+        def __init__(self, headless: bool = True):
+            self.headless = headless
 
-    async def close(self):
-        pass
+        async def start(self):
+            pass
 
-    async def navigate(self, url):
-        pass
+        async def close(self):
+            pass
 
-    async def fill_field(self, selector, value):
-        pass
+        async def navigate(self, url):
+            pass
 
-    async def click(self, selector):
-        pass
+        async def get_page(self):
+            return None
 
-    async def wait_for_element(self, selector, timeout=10000):
-        pass
+        async def run_task(self, instruction: str):
+            return {"message": "Mock browser task completed", "instruction": instruction}
 
-    async def evaluate_js(self, script):
-        return []
-
-    async def select_option(self, selector, value):
-        pass
-
-
-# Use mock implementation
-BrowserUse = MockBrowserUse
+    BrowserUse = MockBrowserUse
 
 logger = logging.getLogger(__name__)
 
@@ -1727,118 +1780,328 @@ class PrimaveraTools(BasePlatformTool):
 
 
 class MSProjectTools(BasePlatformTool):
-    """Tools for Microsoft Project integration."""
+    """Tools for Microsoft Project integration using browser-use automation."""
 
     def __init__(self):
         super().__init__("MSProject")
+        self.base_url = "https://project.microsoft.com"
+        self.current_project_id = None
 
-    async def _perform_authentication(self, credentials: Dict[str, str]) -> bool:
-        """Authenticate with Microsoft Project Online."""
+    async def _perform_authentication(self, credentials: Dict[str, str] = None) -> bool:
+        """Check authentication with Microsoft Project using existing browser session."""
         try:
-            # Navigate to Microsoft Project Online login
-            await self.browser.navigate("https://project.microsoft.com/")
-
-            # Enter credentials through Microsoft 365 login
-            await self.browser.click(".sign-in-button")
-            await self.browser.fill_field("input[type='email']", credentials.get("email", ""))
-            await self.browser.click("#idSIButton9")  # Next button
+            # Navigate to Microsoft Project and check if already authenticated
+            page = await self.browser.navigate(self.base_url)
             
-            # Wait for password field and enter password
-            await self.browser.wait_for_element("input[type='password']")
-            await self.browser.fill_field("input[type='password']", credentials.get("password", ""))
-            await self.browser.click("#idSIButton9")  # Sign in button
-
-            # Handle MFA if required (skip for now)
-            try:
-                await self.browser.wait_for_element(".stay-signed-in", timeout=3000)
-                await self.browser.click("#idBtn_Back")  # No, don't stay signed in
-            except:
-                pass
-
-            # Wait for Project dashboard
-            await self.browser.wait_for_element(".project-list", timeout=15000)
-
-            logger.info("Successfully authenticated with Microsoft Project Online")
-            return True
+            # Use browser-use agent to handle authentication check
+            result = await self.browser.run_task(
+                "Navigate to Microsoft Project and check if user is already signed in. "
+                "If not signed in, help user sign in using their existing browser session. "
+                "Wait for the project dashboard to load."
+            )
+            
+            # Verify we're on the projects page by checking for project-related elements
+            page = await self.browser.get_page()
+            if page:
+                # Wait for either project list or sign-in page
+                try:
+                    await page.wait_for_selector("div[data-testid='project-list'], .project-tile, .sign-in-button", timeout=10000)
+                    
+                    # Check if we see projects (authenticated) or sign-in (not authenticated)
+                    is_authenticated = await page.evaluate("""
+                        () => {
+                            const projectList = document.querySelector("div[data-testid='project-list'], .project-tile");
+                            const signInButton = document.querySelector(".sign-in-button");
+                            return !!projectList && !signInButton;
+                        }
+                    """)
+                    
+                    if is_authenticated:
+                        logger.info("Successfully authenticated with Microsoft Project")
+                        return True
+                    else:
+                        logger.warning("Not authenticated with Microsoft Project - user needs to sign in")
+                        return False
+                        
+                except Exception as e:
+                    logger.error(f"Timeout waiting for Microsoft Project page elements: {e}")
+                    return False
+            else:
+                logger.error("No page available for authentication check")
+                return False
 
         except Exception as e:
-            logger.error(f"Microsoft Project authentication failed: {e}")
+            logger.error(f"Microsoft Project authentication check failed: {e}")
             return False
 
     async def get_projects(self) -> List[Dict[str, Any]]:
-        """Get list of projects from Microsoft Project."""
+        """Get list of projects from Microsoft Project using browser-use."""
         if not self.authenticated:
-            return []
+            await self.authenticate()
+            if not self.authenticated:
+                return []
 
         try:
-            # Navigate to projects page
-            await self.browser.wait_for_element(".project-list")
-
-            # Extract project data
-            projects = await self.browser.evaluate_js(
-                """
-                const projectElements = document.querySelectorAll('.project-tile, .project-item');
-                return Array.from(projectElements).map(el => ({
-                    id: el.dataset.projectId || el.querySelector('a')?.href?.split('/').pop(),
-                    name: el.querySelector('.project-name, .project-title')?.textContent?.trim(),
-                    lastModified: el.querySelector('.last-modified, .modified-date')?.textContent?.trim(),
-                    owner: el.querySelector('.project-owner, .owner')?.textContent?.trim(),
-                    status: el.querySelector('.project-status')?.textContent?.trim() || 'active'
-                }));
-            """
+            # Use browser-use agent to extract project information
+            result = await self.browser.run_task(
+                "Find all projects on the Microsoft Project dashboard. "
+                "For each project, extract the project name, ID (from URL or data attributes), "
+                "last modified date, owner/creator, and any status information. "
+                "Return this as structured data."
             )
-
-            logger.info(f"Retrieved {len(projects)} projects from Microsoft Project")
-            return projects
+            
+            # Get the current page to extract data programmatically as backup
+            page = await self.browser.get_page()
+            if page:
+                projects_data = await page.evaluate("""
+                    () => {
+                        // Try multiple selectors for different MS Project UI versions
+                        const projectSelectors = [
+                            'div[data-testid="project-card"]',
+                            '.project-tile',
+                            '.project-item',
+                            '[role="listitem"]',
+                            'div[data-automation-id*="project"]'
+                        ];
+                        
+                        let projectElements = [];
+                        for (const selector of projectSelectors) {
+                            projectElements = document.querySelectorAll(selector);
+                            if (projectElements.length > 0) break;
+                        }
+                        
+                        return Array.from(projectElements).map((el, index) => {
+                            // Extract project information from various possible locations
+                            const nameSelectors = ['.project-name', '.project-title', 'h3', 'h4', '[data-automation-id*="name"]'];
+                            const linkSelectors = ['a', '[href]', '[data-automation-id*="link"]'];
+                            
+                            let name = '';
+                            let projectId = '';
+                            let href = '';
+                            
+                            // Find project name
+                            for (const selector of nameSelectors) {
+                                const nameEl = el.querySelector(selector);
+                                if (nameEl && nameEl.textContent.trim()) {
+                                    name = nameEl.textContent.trim();
+                                    break;
+                                }
+                            }
+                            
+                            // Find project link/ID
+                            for (const selector of linkSelectors) {
+                                const linkEl = el.querySelector(selector);
+                                if (linkEl) {
+                                    href = linkEl.href || linkEl.getAttribute('href') || '';
+                                    if (href) {
+                                        // Extract project ID from URL
+                                        const urlParts = href.split('/');
+                                        projectId = urlParts[urlParts.length - 1] || `project-${index}`;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            // Extract other metadata
+                            const lastModified = el.querySelector('.last-modified, .modified-date, .date')?.textContent?.trim() || '';
+                            const owner = el.querySelector('.owner, .creator, .project-owner')?.textContent?.trim() || '';
+                            const status = el.querySelector('.status, .project-status')?.textContent?.trim() || 'active';
+                            
+                            return {
+                                id: projectId || `ms-project-${index}`,
+                                name: name || `Project ${index + 1}`,
+                                lastModified: lastModified,
+                                owner: owner,
+                                status: status,
+                                url: href,
+                                platform: 'msproject'
+                            };
+                        }).filter(project => project.name && project.name !== '');
+                    }
+                """)
+                
+                logger.info(f"Retrieved {len(projects_data)} projects from Microsoft Project")
+                return projects_data
+            else:
+                logger.error("No page available for project extraction")
+                return []
 
         except Exception as e:
             logger.error(f"Failed to get Microsoft Project projects: {e}")
             return []
 
     async def get_schedule(self, project_id: str) -> Dict[str, Any]:
-        """Get project schedule from Microsoft Project."""
+        """Get project schedule from Microsoft Project using browser-use."""
         if not self.authenticated:
-            return {}
+            await self.authenticate()
+            if not self.authenticated:
+                return {}
 
         try:
-            # Navigate to project schedule
-            await self.browser.navigate(f"/projects/{project_id}")
-            await self.browser.wait_for_element(".task-grid, .schedule-view")
-
-            # Extract schedule data
-            schedule_data = await self.browser.evaluate_js(
-                """
-                const tasks = document.querySelectorAll('.task-row, .grid-row');
-                const projectInfo = {
-                    startDate: document.querySelector('.project-start, .start-date')?.textContent?.trim(),
-                    finishDate: document.querySelector('.project-finish, .finish-date')?.textContent?.trim(),
-                    totalTasks: tasks.length
-                };
-
-                const taskData = Array.from(tasks).map(el => ({
-                    id: el.dataset.taskId || el.id,
-                    name: el.querySelector('.task-name, .name-cell')?.textContent?.trim(),
-                    startDate: el.querySelector('.start-date, .start')?.textContent?.trim(),
-                    finishDate: el.querySelector('.finish-date, .finish')?.textContent?.trim(),
-                    duration: el.querySelector('.duration')?.textContent?.trim(),
-                    percentComplete: el.querySelector('.percent-complete, .progress')?.textContent?.trim(),
-                    predecessors: el.querySelector('.predecessors')?.textContent?.trim(),
-                    resourceNames: el.querySelector('.resource-names, .resources')?.textContent?.trim(),
-                    critical: el.classList.contains('critical-task') || el.querySelector('.critical-indicator'),
-                    outline_level: el.dataset.outlineLevel || '1'
-                }));
-
-                return {
-                    projectInfo: projectInfo,
-                    tasks: taskData,
-                    totalTasks: taskData.length,
-                    criticalTasks: taskData.filter(t => t.critical).length
-                };
-            """
+            self.current_project_id = project_id
+            
+            # Navigate to specific project
+            project_url = f"{self.base_url}/projects/{project_id}"
+            await self.browser.navigate(project_url)
+            
+            # Use browser-use agent to navigate to schedule view and extract data
+            result = await self.browser.run_task(
+                f"Navigate to the project schedule view for project {project_id}. "
+                "Look for task lists, Gantt charts, timeline views, or schedule grids. "
+                "Extract all task information including names, dates, durations, progress, "
+                "dependencies, and resource assignments."
             )
-
-            logger.info(f"Retrieved schedule for Microsoft Project {project_id}")
-            return schedule_data
+            
+            # Get current page for programmatic data extraction
+            page = await self.browser.get_page()
+            if page:
+                # Wait for schedule content to load
+                await page.wait_for_selector("div[role='grid'], .task-list, .schedule-view, .gantt-chart", timeout=10000)
+                
+                schedule_data = await page.evaluate("""
+                    () => {
+                        // Look for different schedule view selectors
+                        const taskSelectors = [
+                            'div[role="row"][data-automation-id*="task"]',
+                            '.task-row',
+                            '.grid-row',
+                            '.schedule-item',
+                            'tr[data-testid*="task"]'
+                        ];
+                        
+                        let taskElements = [];
+                        for (const selector of taskSelectors) {
+                            taskElements = document.querySelectorAll(selector);
+                            if (taskElements.length > 0) break;
+                        }
+                        
+                        // Extract project-level information
+                        const projectInfo = {
+                            projectId: window.location.pathname.split('/').pop(),
+                            projectName: document.querySelector('h1, .project-title, [data-automation-id*="title"]')?.textContent?.trim() || '',
+                            startDate: document.querySelector('[data-automation-id*="start"], .start-date')?.textContent?.trim() || '',
+                            finishDate: document.querySelector('[data-automation-id*="finish"], .finish-date')?.textContent?.trim() || '',
+                            totalTasks: taskElements.length,
+                            lastUpdated: new Date().toISOString()
+                        };
+                        
+                        // Extract task data
+                        const tasks = Array.from(taskElements).map((el, index) => {
+                            // Task name selectors
+                            const nameSelectors = [
+                                '[data-automation-id*="name"]',
+                                '.task-name',
+                                '.name-cell',
+                                'td:first-child',
+                                'div[role="gridcell"]:first-child'
+                            ];
+                            
+                            let taskName = '';
+                            for (const selector of nameSelectors) {
+                                const nameEl = el.querySelector(selector);
+                                if (nameEl && nameEl.textContent.trim()) {
+                                    taskName = nameEl.textContent.trim();
+                                    break;
+                                }
+                            }
+                            
+                            // Extract other task fields
+                            const extractField = (fieldSelectors) => {
+                                for (const selector of fieldSelectors) {
+                                    const fieldEl = el.querySelector(selector);
+                                    if (fieldEl && fieldEl.textContent.trim()) {
+                                        return fieldEl.textContent.trim();
+                                    }
+                                }
+                                return '';
+                            };
+                            
+                            return {
+                                id: el.dataset.taskId || el.id || `task-${index}`,
+                                name: taskName || `Task ${index + 1}`,
+                                startDate: extractField([
+                                    '[data-automation-id*="start"]',
+                                    '.start-date',
+                                    '.start',
+                                    'td:nth-child(2)'
+                                ]),
+                                finishDate: extractField([
+                                    '[data-automation-id*="finish"]',
+                                    '.finish-date',
+                                    '.finish',
+                                    'td:nth-child(3)'
+                                ]),
+                                duration: extractField([
+                                    '[data-automation-id*="duration"]',
+                                    '.duration',
+                                    'td:nth-child(4)'
+                                ]),
+                                percentComplete: extractField([
+                                    '[data-automation-id*="complete"]',
+                                    '.percent-complete',
+                                    '.progress',
+                                    'td:nth-child(5)'
+                                ]),
+                                predecessors: extractField([
+                                    '[data-automation-id*="predecessor"]',
+                                    '.predecessors',
+                                    '.dependencies'
+                                ]),
+                                resourceNames: extractField([
+                                    '[data-automation-id*="resource"]',
+                                    '.resource-names',
+                                    '.resources',
+                                    '.assigned-to'
+                                ]),
+                                priority: extractField([
+                                    '[data-automation-id*="priority"]',
+                                    '.priority'
+                                ]),
+                                status: extractField([
+                                    '[data-automation-id*="status"]',
+                                    '.status',
+                                    '.task-status'
+                                ]) || 'active'
+                            };
+                        }).filter(task => task.name && task.name !== '');
+                        
+                        // Extract milestones if present
+                        const milestoneElements = document.querySelectorAll('.milestone, [data-automation-id*="milestone"]');
+                        const milestones = Array.from(milestoneElements).map((el, index) => ({
+                            id: el.dataset.milestoneId || `milestone-${index}`,
+                            name: el.querySelector('.milestone-name, .name')?.textContent?.trim() || `Milestone ${index + 1}`,
+                            date: el.querySelector('.milestone-date, .date')?.textContent?.trim() || '',
+                            description: el.querySelector('.description')?.textContent?.trim() || ''
+                        }));
+                        
+                        return {
+                            project: projectInfo,
+                            tasks: tasks,
+                            milestones: milestones,
+                            summary: {
+                                totalTasks: tasks.length,
+                                completedTasks: tasks.filter(t => {
+                                    const pct = parseInt(t.percentComplete) || 0;
+                                    return pct >= 100;
+                                }).length,
+                                inProgressTasks: tasks.filter(t => {
+                                    const pct = parseInt(t.percentComplete) || 0;
+                                    return pct > 0 && pct < 100;
+                                }).length,
+                                notStartedTasks: tasks.filter(t => {
+                                    const pct = parseInt(t.percentComplete) || 0;
+                                    return pct === 0;
+                                }).length
+                            }
+                        };
+                    }
+                """)
+                
+                logger.info(f"Retrieved schedule with {len(schedule_data.get('tasks', []))} tasks from MS Project {project_id}")
+                return schedule_data
+            else:
+                logger.error("No page available for schedule extraction")
+                return {}
 
         except Exception as e:
             logger.error(f"Failed to get Microsoft Project schedule: {e}")

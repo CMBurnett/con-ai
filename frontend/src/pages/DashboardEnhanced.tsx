@@ -15,12 +15,11 @@ import { ExportDataPanel } from '@/components/charts/ExportDataPanel';
 type DashboardView = 'overview' | 'analytics' | 'collaboration' | 'patterns' | 'export';
 
 export const DashboardEnhanced: React.FC = () => {
-  const { agents, activeAgents, recentUpdates, setAgents } = useAgentStore();
-  const { projects, rfis, budgetItems, lastSync, isLoading } = useDataStore();
+  const { agents, activeAgents, setAgents } = useAgentStore();
+  const { projects, rfis, lastSync } = useDataStore();
   const { isConnected, sendAgentStart, sendAgentStop } = useWebSocket();
   const { addNotification } = useUIStore();
   
-  const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<DashboardView>('overview');
   const [selectedProject, setSelectedProject] = useState<string>('proj-1');
 
@@ -166,7 +165,6 @@ export const DashboardEnhanced: React.FC = () => {
     const agent = agents.find(a => a.id === agentId);
     if (!agent) return;
 
-    setSelectedAgent(agentId);
     
     try {
       sendAgentStart(agentId, agent.type, 'extract_project_data', {
@@ -180,7 +178,7 @@ export const DashboardEnhanced: React.FC = () => {
         message: `${agent.name} is now running`,
         duration: 3000,
       });
-    } catch (error) {
+    } catch {
       addNotification({
         type: 'error',
         title: 'Start Failed',
@@ -203,7 +201,7 @@ export const DashboardEnhanced: React.FC = () => {
         message: `${agent.name} has been stopped`,
         duration: 3000,
       });
-    } catch (error) {
+    } catch {
       addNotification({
         type: 'error',
         title: 'Stop Failed',

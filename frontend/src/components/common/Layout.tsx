@@ -78,6 +78,24 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         },
       },
       {
+        id: 'email-agent-1',
+        name: 'Email Intelligence Agent',
+        type: 'email' as const,
+        status: 'idle' as const,
+        progress: 0,
+        config: {
+          id: 'email-agent-1',
+          agentType: 'email',
+          settings: {
+            provider: 'gmail',
+            monitoredFolders: ['INBOX', 'Construction'],
+            processingFrequency: 'realtime',
+            extractProjectData: true,
+            processAttachments: true,
+          },
+        },
+      },
+      {
         id: 'demo-agent-1',
         name: 'Demo Testing Agent',
         type: 'demo' as const,

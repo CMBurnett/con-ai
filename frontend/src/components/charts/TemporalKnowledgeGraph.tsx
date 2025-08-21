@@ -9,8 +9,8 @@ interface Node {
   nodeType: 'agent' | 'project' | 'task' | 'platform';
   entityId: string;
   entityName: string;
-  attributes: Record<string, any>;
-  properties: Record<string, any>;
+  attributes: Record<string, unknown>;
+  properties: Record<string, unknown>;
 }
 
 interface Edge {
@@ -37,7 +37,7 @@ export const TemporalKnowledgeGraph: React.FC<TemporalKnowledgeGraphProps> = ({
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<Record<string, unknown> | null>(null);
   const [canvasWidth, setCanvasWidth] = useState(width || 800);
   const { isConnected } = useWebSocket();
 
@@ -63,7 +63,7 @@ export const TemporalKnowledgeGraph: React.FC<TemporalKnowledgeGraphProps> = ({
         if (response.ok) {
           const data = await response.json();
           setStats(data);
-          await generateVisualizationData(data);
+          await generateVisualizationData();
         }
       } catch (error) {
         console.error('Failed to fetch knowledge graph data:', error);
@@ -75,7 +75,7 @@ export const TemporalKnowledgeGraph: React.FC<TemporalKnowledgeGraphProps> = ({
     fetchKnowledgeGraphData();
   }, [isConnected]);
 
-  const generateVisualizationData = async (statsData: any) => {
+  const generateVisualizationData = async () => {
     // Generate nodes based on knowledge graph stats
     const generatedNodes: Node[] = [];
     const generatedEdges: Edge[] = [];
@@ -112,7 +112,7 @@ export const TemporalKnowledgeGraph: React.FC<TemporalKnowledgeGraphProps> = ({
 
     // Create platform nodes
     const platforms = ['procore', 'autodesk', 'primavera'];
-    platforms.forEach((platform, i) => {
+    platforms.forEach((platform) => {
       generatedNodes.push({
         id: `platform-${platform}`,
         x: Math.random() * (canvasWidth - 100) + 50,
@@ -371,7 +371,7 @@ export const TemporalKnowledgeGraph: React.FC<TemporalKnowledgeGraphProps> = ({
           </div>
           {stats && (
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              {stats.total_nodes} nodes • {stats.total_edges} edges
+              {String(stats.total_nodes)} nodes • {String(stats.total_edges)} edges
             </div>
           )}
         </div>
@@ -436,19 +436,19 @@ export const TemporalKnowledgeGraph: React.FC<TemporalKnowledgeGraphProps> = ({
                       {selectedNode.entityId}
                     </span>
                   </div>
-                  {selectedNode.attributes.status && (
+                  {(selectedNode.attributes.status as string) && (
                     <div className="text-xs">
                       <span className="text-gray-500 dark:text-gray-400">Status:</span>
                       <span
                         className={`ml-2 px-2 py-1 rounded text-xs font-medium ${
-                          selectedNode.attributes.status === 'running'
+                          (selectedNode.attributes.status as string) === 'running'
                             ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                            : selectedNode.attributes.status === 'active'
+                            : (selectedNode.attributes.status as string) === 'active'
                             ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                             : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
                         }`}
                       >
-                        {selectedNode.attributes.status}
+                        {selectedNode.attributes.status as string}
                       </span>
                     </div>
                   )}
@@ -456,7 +456,7 @@ export const TemporalKnowledgeGraph: React.FC<TemporalKnowledgeGraphProps> = ({
                     <div className="text-xs">
                       <span className="text-gray-500 dark:text-gray-400">Progress:</span>
                       <span className="ml-2 text-gray-900 dark:text-white">
-                        {Math.round(selectedNode.properties.progress)}%
+                        {Math.round(Number(selectedNode.properties.progress))}%
                       </span>
                     </div>
                   )}

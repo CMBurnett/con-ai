@@ -11,11 +11,11 @@ interface AgentStore {
   updateAgent: (agentId: string, updates: Partial<Agent>) => void;
   addAgentUpdate: (update: AgentUpdate) => void;
   clearUpdates: () => void;
-  startAgent: (agentId: string, taskType: string, parameters?: any) => void;
+  startAgent: (agentId: string) => void;
   stopAgent: (agentId: string) => void;
 }
 
-export const useAgentStore = create<AgentStore>((set, get) => ({
+export const useAgentStore = create<AgentStore>((set) => ({
   agents: [],
   activeAgents: [],
   recentUpdates: [],
@@ -50,7 +50,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
   clearUpdates: () => set({ recentUpdates: [] }),
 
-  startAgent: (agentId, taskType, parameters = {}) => {
+  startAgent: (agentId) => {
     // This will be called by components to trigger agent start
     // The actual WebSocket command will be sent by the component
     set((state) => ({

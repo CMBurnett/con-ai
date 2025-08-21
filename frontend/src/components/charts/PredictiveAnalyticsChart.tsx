@@ -7,10 +7,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
   Legend,
   ReferenceLine,
 } from 'recharts';
@@ -25,7 +21,7 @@ interface PredictionData {
   confidence_score: number;
   risk_level: string;
   recommendations: string[];
-  contributing_factors?: any;
+  contributing_factors?: Record<string, unknown>;
 }
 
 interface HistoricalDataPoint {
@@ -51,7 +47,6 @@ export const PredictiveAnalyticsChart: React.FC<PredictiveAnalyticsChartProps> =
   const [predictionData, setPredictionData] = useState<PredictionData | null>(null);
   const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { isConnected } = useWebSocket();
 
   useEffect(() => {
@@ -415,7 +410,7 @@ export const PredictiveAnalyticsChart: React.FC<PredictiveAnalyticsChartProps> =
                         <span className="text-sm font-medium text-gray-900 dark:text-white">
                           {typeof value === 'number' ? 
                             (value < 1 ? `${Math.round(value * 100)}%` : value) : 
-                            value
+                            String(value)
                           }
                         </span>
                       </div>

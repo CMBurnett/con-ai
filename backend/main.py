@@ -85,8 +85,10 @@ app.add_middleware(
 
 # Include Orchestra API router
 from api.orchestra import router as orchestra_router
+from api.email_routes import router as email_router
 
 app.include_router(orchestra_router, prefix="/api")
+app.include_router(email_router, prefix="/api")
 
 
 # Health check endpoint

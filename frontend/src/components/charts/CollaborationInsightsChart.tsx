@@ -6,15 +6,11 @@ import {
   PolarRadiusAxis,
   Radar,
   ResponsiveContainer,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
-  LineChart,
-  Line,
   Area,
   AreaChart,
 } from 'recharts';
@@ -90,7 +86,7 @@ export const CollaborationInsightsChart: React.FC<CollaborationInsightsChartProp
     }
   };
 
-  const processCollaborationData = (data: any) => {
+  const processCollaborationData = (_data: Record<string, unknown>) => {
     // Process real Orchestra collaboration data
     generateDemoCollaborationData();
   };

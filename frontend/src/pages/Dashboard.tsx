@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useAgentStore } from '@/stores/agentStore';
 import { useDataStore } from '@/stores/dataStore';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -6,10 +6,9 @@ import { useUIStore } from '@/stores/uiStore';
 
 export const Dashboard: React.FC = () => {
   const { agents, activeAgents, recentUpdates, setAgents } = useAgentStore();
-  const { projects, rfis, budgetItems, lastSync, isLoading } = useDataStore();
+  const { projects, rfis, lastSync } = useDataStore();
   const { isConnected, sendAgentStart, sendAgentStop } = useWebSocket();
   const { addNotification } = useUIStore();
-  const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
 
   // Initialize demo agents
   useEffect(() => {
@@ -169,7 +168,6 @@ export const Dashboard: React.FC = () => {
     const agent = agents.find(a => a.id === agentId);
     if (!agent) return;
 
-    setSelectedAgent(agentId);
     
     try {
       // Send command to Orchestra backend
@@ -184,7 +182,7 @@ export const Dashboard: React.FC = () => {
         message: `${agent.name} is now running`,
         duration: 3000,
       });
-    } catch (error) {
+    } catch {
       addNotification({
         type: 'error',
         title: 'Start Failed',
@@ -207,7 +205,7 @@ export const Dashboard: React.FC = () => {
         message: `${agent.name} has been stopped`,
         duration: 3000,
       });
-    } catch (error) {
+    } catch {
       addNotification({
         type: 'error',
         title: 'Stop Failed',

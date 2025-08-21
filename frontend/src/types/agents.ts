@@ -1,7 +1,9 @@
+export type AgentType = 'procore' | 'autodesk' | 'primavera' | 'msproject' | 'email' | 'demo';
+
 export interface Agent {
   id: string;
   name: string;
-  type: 'procore' | 'autodesk' | 'primavera' | 'msproject' | 'demo';
+  type: AgentType;
   status: 'idle' | 'running' | 'error' | 'completed';
   progress: number;
   lastRun?: Date;

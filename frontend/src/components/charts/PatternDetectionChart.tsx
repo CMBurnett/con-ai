@@ -7,14 +7,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  ScatterChart,
-  Scatter,
-  Cell,
-  ReferenceLine,
   Brush,
-  BarChart,
-  Bar,
-  Legend,
 } from 'recharts';
 import { useWebSocket } from '@/hooks/useWebSocket';
 
@@ -23,7 +16,7 @@ interface DetectedPattern {
   pattern_type: string;
   pattern_name: string;
   confidence_score: number;
-  pattern_data: Record<string, any>;
+  pattern_data: Record<string, unknown>;
   detected_at: string;
   lookback_days: number;
   affected_entities: string[];
@@ -125,7 +118,7 @@ export const PatternDetectionChart: React.FC<PatternDetectionChartProps> = ({
     }
   };
 
-  const processOrchestrationPatterns = (data: any) => {
+  const processOrchestrationPatterns = (_data: Record<string, unknown>) => {
     // Process real Orchestra pattern data
     generateDemoPatternData();
   };
@@ -391,7 +384,7 @@ export const PatternDetectionChart: React.FC<PatternDetectionChartProps> = ({
                 dataKey="value"
                 stroke="#10B981"
                 strokeWidth={2}
-                dot={(props) => {
+                dot={(props: any) => {
                   const { payload } = props;
                   if (payload && payload.isAnomaly) {
                     return (
@@ -405,7 +398,7 @@ export const PatternDetectionChart: React.FC<PatternDetectionChartProps> = ({
                       />
                     );
                   }
-                  return null;
+                  return <></>;
                 }}
                 name="Actual"
               />
